@@ -67,22 +67,21 @@ class SQLiteRepository(AbstractRepository[T]):
         where - условие в виде словаря {'название_поля': значение}
         если условие не задано (по умолчанию), вернуть все записи
         """
-
         with sqlite3.connect(self.db_file) as con:
             cur = con.cursor()
-        if where is None:
-            cur.execute(f'SELECT * FROM {self.table_name}')  # TODO: добавить блок WHERE
-        else:
-            help_list = []
-            stmt = f"SELECT * FROM {self.table_name} WHERE "
-            for elem in where:
-                if isinstance(where[elem], type(str)):
-                    help_list.append(f"{elem} = '{where[elem]}'")
-                else:
-                    help_list.append(f"{elem} = {where[elem]}")
-            stmt += ' AND '.join(help_list)
-            cur.execute(stmt)
-        rows = cur.fetchall()
+            if where is None:
+                cur.execute(f'SELECT * FROM {self.table_name}')  # TODO: сделать обработку интов в запросе, а не только строк
+            else:
+                help_list = []
+                stmt = f"SELECT * FROM {self.table_name} WHERE "
+                for elem in where:
+                    # if isinstance(where[elem], type(str)):
+                        help_list.append(f"{elem} = '{where[elem]}'")
+                    # else:
+                    #     help_list.append(f"{elem} = {where[elem]}")
+                stmt += ' AND '.join(help_list)
+                cur.execute(stmt)
+            rows = cur.fetchall()
         con.close()
 
         if not rows:
