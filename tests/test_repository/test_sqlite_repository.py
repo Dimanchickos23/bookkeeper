@@ -1,3 +1,6 @@
+import logging
+
+from bookkeeper.models.category import Category
 from bookkeeper.repository.sqlite_repository import SQLiteRepository
 from dataclasses import dataclass
 import pytest
@@ -29,3 +32,18 @@ def test_add_get_and_delete(repo, custom_class):
     assert o is None
     repo.delete(pk)
     assert repo.get(pk) is None
+
+
+def test_update(repo, custom_class):
+    obj = custom_class
+    pk = repo.add(obj)
+    o = repo.get(pk)
+    o.test_field = 'def'
+    repo.update(o)
+    assert repo.get(pk) == o
+
+
+# def test_getall(repo, custom_class):
+#     obj = custom_class
+#     pk = repo.add(obj)
+#     assert repo.get_all({'test_field': 'abc'})[0].test_field == 'abc'

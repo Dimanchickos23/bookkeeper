@@ -9,6 +9,7 @@ class SQLiteRepository(AbstractRepository[T]):
     """
        Репозиторий, работающий c sqlite. Хранит данные в БД.
     """
+
     def __init__(self, db_file: str, cls: type) -> None:
         self.db_file = db_file
         self.table_name = cls.__name__.lower()
@@ -60,16 +61,28 @@ class SQLiteRepository(AbstractRepository[T]):
 
         return self.__generate_object(row)
 
-    def get_all(self, where: dict[str, Any] | None = None) -> list[T]:
+    def get_all(self, where: dict[str, Any] | None = None) -> list[T] | None:
         """
         Получить все записи по некоторому условию
         where - условие в виде словаря {'название_поля': значение}
         если условие не задано (по умолчанию), вернуть все записи
         """
+
         with sqlite3.connect(self.db_file) as con:
             cur = con.cursor()
+        if where is None:
             cur.execute(f'SELECT * FROM {self.table_name}')  # TODO: добавить блок WHERE
-            rows = cur.fetchall()
+        else:
+            help_list = []
+            stmt = f"SELECT * FROM {self.table_name} WHERE "
+            for elem in where:
+                if isinstance(where[elem], type(str)):
+                    help_list.append(f"{elem} = '{where[elem]}'")
+                else:
+                    help_list.append(f"{elem} = {where[elem]}")
+            stmt += ' AND '.join(help_list)
+            cur.execute(stmt)
+        rows = cur.fetchall()
         con.close()
 
         if not rows:
@@ -78,11 +91,21 @@ class SQLiteRepository(AbstractRepository[T]):
         return [self.__generate_object(row) for row in rows]
 
     def update(self, obj: T) -> None:
-        """ Обновить данные об объекте. Объект должен содержать поле pk. """
-        pass
+        with sqlite3.connect(self.db_file) as con:
+            cur = con.cursor()
+            help_list = []
+            for column in self.fields.keys():   # TODO: сделать обработку интов в запросе, а не только строк
+                # if isinstance(getattr(obj, column), type(str)):
+                    help_list.append(f"{column} = '{getattr(obj, column)}'")
+                # else:
+                #     help_list.append(f"{column} = {getattr(obj, column)}")
+            cur.execute(
+                f'UPDATE {self.table_name} '
+                f'SET ' + ', '.join(help_list) +
+                f' WHERE pk = {obj.pk}'
+            )
 
     def delete(self, pk: int) -> None:
-        """ Удалить запись """
         with sqlite3.connect(self.db_file) as con:
             cur = con.cursor()
             cur.execute(f'DELETE FROM {self.table_name} where pk = {pk}')
